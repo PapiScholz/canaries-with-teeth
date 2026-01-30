@@ -1,8 +1,18 @@
 # Phase 4: UDI
 
-- Integrate unique deployment identifiers
-- Correlate all signals to UDI
-- Enforce UDI presence in all events
+Purpose: Ensure all telemetry and canary signals are correlated to a unique deployment identifier (UDI).
 
-## Failure modes & pivots
-- 
+Signals Produced:
+- UDI field in all events
+- UDI correlation in aggregates
+
+Deterministic Rules:
+- All events must include UDI
+- Aggregation must group by UDI
+
+Gating Impact:
+- BLOCK if UDI missing in any event
+
+Failure Modes & Pivots:
+- UDI missing → block release, log event
+- UDI collision → block, require redeploy

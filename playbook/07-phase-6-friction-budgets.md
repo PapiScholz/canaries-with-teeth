@@ -1,8 +1,18 @@
 # Phase 6: Friction Budgets
 
-- Quantify and enforce user friction budgets
-- Block releases on friction overages
-- Attribute friction to user-facing flows
+Purpose: Quantify user friction in critical flows and enforce deterministic friction budgets for release gating.
 
-## Failure modes & pivots
-- 
+Signals Produced:
+- Friction score (0–100)
+- Over-budget (boolean)
+
+Deterministic Rules:
+- BLOCK if friction score > budget
+- ALLOW if within budget
+
+Gating Impact:
+- BLOCK on over-budget
+
+Failure Modes & Pivots:
+- Friction type misclassified → update contract
+- Budget too low → update contract, rerun

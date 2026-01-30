@@ -1,26 +1,41 @@
 # Friction Budget Contract
 
 ## Purpose
-Quantify user friction and enforce budget limits.
+Quantify user friction in critical flows and enforce deterministic budget limits for release gating.
 
 ## Inputs (explicit fields)
-- friction_events
-- user_sessions
-- friction_type
+- frictionTypes: array of { type: string, count: integer, weight: number (0–1) }
+- userSessions: integer
+- budget: number (0–100)
 
-## Calculation (or evaluation logic)
-- Friction rate = friction_events / user_sessions
-- TODO: Define friction_type weights
+## Deterministic Calculation
+- For each frictionType: weighted = count * weight
+- score = sum(weighted for all types) / userSessions * 100
+- Over-budget if score > budget
 
-## Output range
-- 0.0 to 1.0 (float)
+## Friction Types and Weights
+- Example types: navigationError, validationError, timeout, retry, abandonment
+- Each type must have explicit weight (0–1)
 
-## Operational interpretation
-- Exceeding friction budget blocks release
+## Output Fields
+- frictionTypes (with type, count, weight)
+- score (number, 0–100)
+- budget (number, 0–100)
+- overBudget (boolean)
+- reason (string, required if overBudget)
 
-## Gating impact
-- Release is blocked if friction rate > budget
+## Budget Evaluation Rules
+- If score > budget, overBudget = true, reason required
+- If score ≤ budget, overBudget = false
 
-## Non-goals / what this contract does NOT do
-- Does not explain friction causes
-- Does not budget for non-user-facing events
+## Gating Thresholds
+- BLOCK if overBudget == true
+- Log all over-budget reasons
+
+## Operational Interpretation
+- Release is blocked if friction score exceeds budget
+- All calculations are deterministic and auditable
+
+## Non-goals
+- No root cause analysis
+- No non-user-facing friction
