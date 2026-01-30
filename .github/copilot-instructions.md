@@ -1,60 +1,62 @@
 # Copilot Instructions for AI Agents
 
-## Project Overview
-This repository defines a **framework for production canaries, actionable telemetry, and risk-based release gating**. It is not a library or product, but an explicit operating model for systems that must detect regressions early and make deterministic deployment decisions.
+## Project Purpose & Structure
+This repository is a **reference framework for production canaries, telemetry, and deterministic release gating**. It is not a runnable product, but a model for building systems that:
+- Detect regressions early (via canaries and telemetry)
+- Make deterministic, auditable deployment decisions
+- Enforce explicit, versioned contracts for all signals
 
-## Architecture & Data Flow
-- **Synthetic Canaries (E2E + perf):**
-  - Run in CI and on schedule
-  - Detect fast, obvious regressions (critical path, p95 perf, hard caps)
-  - Failure = immediate release block
-- **In-app Telemetry:**
-  - Tracks UX degradation, function health, and user friction
-  - Uses deterministic, versioned contracts (not raw metrics)
-  - Silent-fail: telemetry must never break user flows
-- **Daily Aggregation:**
-  - Aggregates raw events into daily facts
-  - Enforces schema consistency and idempotency
-- **Risk Forecast:**
-  - Synthesizes normalized signals into a deterministic risk score (0–100)
-  - Designed for threshold-based gating, not alerts
+## Architecture Overview
+- **Synthetic Canaries:**
+  - Defined for E2E and performance checks
+  - Run in CI and on schedule; failures block release
+- **Telemetry Contracts:**
+  - All telemetry is contract-based, versioned, and schema-validated
+  - Telemetry must never break user flows (silent-fail)
+- **Aggregation & Risk:**
+  - Daily aggregation enforces schema and idempotency
+  - Risk score is deterministic (0–100), never ML-based
 - **Release Gates:**
-  - Enforce consequences (block on canary fail, risk score, or drift)
+  - Gating logic is explicit: block on canary fail or risk score threshold
 
-## Key Principles
-- **Determinism over heuristics:** All gating is explicit and auditable
-- **Contracts over dashboards:** Metrics are frozen, versioned, and must be tested
-- **Decisions > alerts:** Signals must drive automated release decisions
-- **Noise reduction before insight:** Aggregation and normalization are required before gating
-- **No vendor lock-in:** Storage, runners, and CI are interchangeable
+## Key Conventions & Patterns
+- **Everything is a contract:**
+  - All metrics, signals, and schemas are versioned in `contracts/`
+  - Example: see `contracts/risk-score.contract.md` and `contracts/telemetry-schema.contract.md`
+- **No build/test scripts:**
+  - This repo is not executable; it is a reference for architecture and contracts
+- **No ML, heuristics, or vendor lock-in:**
+  - All logic is deterministic and explainable
+- **No auto-rollback or vendor-specific logic:**
+  - Only explicit, auditable gating is modeled
+- **Documentation-first:**
+  - All design decisions, trade-offs, and failure modes are documented in `docs/`
 
 ## Developer Workflows
-- **Build/Test:** No build/test scripts are present; this repo is a reference model, not an executable system
-- **Schema changes:** Require versioning and explicit intent; changing a contract changes system meaning
-- **Telemetry:** Must be silent-fail—never break user flows for instrumentation
+- **Schema/contract changes:**
+  - Require explicit versioning; changing a contract changes system meaning
+- **Telemetry:**
+  - Must be silent-fail; never break user flows for instrumentation
+- **Release gating logic:**
+  - See `src/gating/release-gate.ts` and `src/gating/run-release-gate.ts` for gating patterns
 
-## Project Conventions
-- **Everything is a contract:** If a signal or metric is not versioned and auditable, it does not belong
-- **No ML or adaptive thresholds:** All risk scoring is deterministic and explainable
-- **No auto-rollback or vendor-specific logic:** These are optional, not core
-- **Failure modes and trade-offs are documented** in the docs/
-
-## Key Files
-- **README.md:** High-level vision, principles, and intended audience
-- **docs/00-vision.md:** Why this framework exists, core ideas, and intended outcomes
-- **docs/01-architecture.md:** System architecture, data flow, and design invariants
+## Key Files & Directories
+- `README.md`: High-level vision and principles
+- `docs/00-vision.md`: Core ideas and intended outcomes
+- `docs/01-architecture.md`: System architecture and data flow
+- `contracts/`: All versioned contracts for telemetry, risk, and gating
+- `src/gating/`: Example gating logic and patterns
 
 ## Example Patterns
 - **Release gating:**
-  - If canary fails, block release
-  - If risk score > threshold, block release
+  - Block release if canary fails or risk score exceeds threshold (see `src/gating/`)
 - **Telemetry contract:**
-  - All metrics must be versioned and schema-validated
+  - All metrics must be versioned and schema-validated (see `contracts/`)
 
 ## What Not To Do
-- Do not add ML-based or fuzzy logic for gating
+- Do not add ML-based, fuzzy, or heuristic logic for gating
 - Do not introduce vendor-specific abstractions
 - Do not break user flows for telemetry
 
 ---
-For more, see the docs/ directory and the top-level README.md.
+For more, see the `docs/` directory and the top-level `README.md`.
