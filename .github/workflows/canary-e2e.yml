@@ -1,0 +1,27 @@
+# E2E Canary CI Integration
+# Runs before release-gate, exports CANARY_PASSED
+
+name: Canary E2E
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  canary-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install -g playwright && npm install
+      - name: Run E2E canaries
+        run: bash e2e/run-canaries.sh
+      - name: Export CANARY_PASSED
+        run: |
+          cat canary-status.env >> $GITHUB_ENV
+      - name: Print canary result
+        run: echo "CANARY_PASSED=$CANARY_PASSED"

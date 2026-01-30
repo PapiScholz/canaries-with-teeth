@@ -19,6 +19,11 @@ jobs:
       - name: Install dependencies
         run: |
           if [ -f package.json ]; then npm ci; fi
+      - name: Run E2E canaries
+        run: bash e2e/run-canaries.sh
+      - name: Export CANARY_PASSED
+        run: |
+          cat canary-status.env >> $GITHUB_ENV
       - name: Validate contracts
         run: node contract-validation.test.js
       - name: Run release gate
