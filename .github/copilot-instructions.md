@@ -1,13 +1,14 @@
 
 
 
+
 # Copilot Instructions for AI Agents
 
-## Project Overview
+## Project Purpose & Structure
 This repository is a **reference architecture** for deterministic release gating, canary analysis, and contract-based telemetry. It is not a runnable product—focus is on patterns, not execution or automation.
 
 ## Architecture & Major Components
-- **Contracts-First:** All signals, metrics, and schemas are versioned and defined in `contracts/`. Any change is a breaking change and must be versioned/documented. See examples like `contracts/risk-score.contract.md` and `contracts/telemetry-schema.contract.md`.
+- **Contracts-First:** All signals, metrics, and schemas are versioned and defined in `contracts/`. Any change is a breaking change and must be versioned/documented. Example: `contracts/risk-score.contract.md`.
 - **Synthetic Canaries:** E2E and performance canaries are modeled for CI and scheduled runs. Canary failures block release. See `e2e/canary.e2e.spec.js` and gating logic in `src/gating/`.
 - **Telemetry:** All telemetry is contract-based, versioned, and schema-validated. Telemetry must never break user flows (silent-fail pattern).
 - **Risk Aggregation:** Daily aggregation is schema-enforced and idempotent. Risk score is deterministic (0–100), never ML-based.

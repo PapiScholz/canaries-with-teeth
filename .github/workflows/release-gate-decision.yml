@@ -65,6 +65,17 @@ ${{ steps.parse_artifact.outputs.artifact_excerpt }}
 ```
 - **Timestamp:** ${{ steps.timestamp.outputs.ts }}
 EOF
+            # If BLOCK, add post-mortem stub and comment
+            if [ "${{ steps.parse_artifact.outputs.decision }}" = "BLOCK" ]; then
+              cat <<EOPM > postmortem-block.md
+Build ID: ${{ github.run_id }}
+Date: ${{ steps.timestamp.outputs.ts }}
+What blocked the release (signal): ${{ steps.parse_artifact.outputs.reasons }}
+Root cause (one sentence):
+Action taken:
+Follow-up owner:
+EOPM
+            fi
           else
             cat <<EOF > comment.txt
 **Release Gate Decision**
@@ -88,3 +99,27 @@ EOF
           body-path: comment.txt
           comment-id: ${{ steps.find_comment.outputs.comment-id }}
           edit-mode: replace
+
+      - name: Upload post-mortem stub (if BLOCK)
+        if: steps.parse_artifact.outputs.decision == 'BLOCK'
+        uses: actions/upload-artifact@v4
+        with:
+          name: postmortem-block
+          path: postmortem-block.md
+
+      - name: Post post-mortem required comment (if BLOCK)
+        if: steps.parse_artifact.outputs.decision == 'BLOCK'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            :warning: **Release BLOCKED**
+            
+            A [minimal post-mortem](../playbook/11-postmortem-minimal.md) is required before override.
+            
+            - Build ID: ${{ github.run_id }}
+            - Timestamp: ${{ steps.timestamp.outputs.ts }}
+            - Blocking reason: ${{ steps.parse_artifact.outputs.reasons }}
+            
+            Please fill out the stub artifact or copy the template.
+          edit-mode: append
