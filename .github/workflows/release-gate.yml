@@ -1,0 +1,27 @@
+name: Release Gate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  release-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then npm ci; fi
+      - name: Validate contracts
+        run: node contract-validation.test.js
+      - name: Run release gate
+        run: |
+          node src/gating/run-release-gate.ts
+        id: release_gate
