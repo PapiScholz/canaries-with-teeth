@@ -1,0 +1,7 @@
+{
+  "canary": true,
+  "telemetry": true,
+  "risk": true,
+  "gating": true,
+  "dashboard": true
+}

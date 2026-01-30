@@ -3,15 +3,21 @@
   "version": "1.0.0",
   "description": "Zero-config deterministic canary, telemetry, risk, and gating system.",
   "bin": {
-    "canaries": "bin/canaries-init.js",
-    "canaries-run": "bin/canaries-run.js"
+    "canaries": "dist/cli.js"
   },
   "scripts": {
-    "canaries:init": "node bin/canaries-init.js",
-    "canaries:run": "node bin/canaries-run.js",
-    "canaries:dashboard": "node bin/canaries-run.js"
+    "canaries:init": "npx canaries init",
+    "canaries:ci": "npx canaries ci",
+    "canaries:risk": "npx canaries risk",
+    "canaries:gate": "npx canaries gate",
+    "canaries:dashboard": "npx canaries dashboard"
   },
+  "type": "module",
   "dependencies": {
     "playwright": "^1.41.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.1.0",
+    "typescript": "^5.9.3"
   }
 }
