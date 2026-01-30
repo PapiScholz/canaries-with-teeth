@@ -1,0 +1,76 @@
+{
+  "purpose": "Quantify user friction in critical flows and enforce deterministic budget limits for release gating.",
+  "inputs": [
+    {
+      "name": "frictionTypes",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "type",
+            "type": "string"
+          },
+          {
+            "name": "count",
+            "type": "integer"
+          },
+          {
+            "name": "weight",
+            "type": "number"
+          }
+        ]
+      }
+    },
+    {
+      "name": "userSessions",
+      "type": "integer"
+    },
+    {
+      "name": "budget",
+      "type": "number"
+    }
+  ],
+  "calculation": "score = sum(count * weight for all types) / userSessions * 100; overBudget if score > budget",
+  "outputs": [
+    {
+      "name": "frictionTypes",
+      "type": "array"
+    },
+    {
+      "name": "score",
+      "type": "number"
+    },
+    {
+      "name": "budget",
+      "type": "number"
+    },
+    {
+      "name": "overBudget",
+      "type": "boolean"
+    },
+    {
+      "name": "reason",
+      "type": "string",
+      "requiredIf": "overBudget == true"
+    }
+  ],
+  "gatingThresholds": "BLOCK if overBudget == true; log all over-budget reasons",
+  "frictionTypes": [
+    {
+      "type": "navigationError",
+      "count": 2,
+      "weight": 0.5
+    },
+    {
+      "type": "timeout",
+      "count": 1,
+      "weight": 0.7
+    }
+  ],
+  "userSessions": 100,
+  "score": 1.7,
+  "budget": 5,
+  "overBudget": false,
+  "reason": "reason_example"
+}

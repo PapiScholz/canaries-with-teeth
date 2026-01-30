@@ -1,0 +1,19 @@
+{
+  "purpose": "Quantify user-facing UI degradation in a deterministic way and provide a gating-ready signal for release decisions.",
+  "inputs": [
+    {"name": "lcp_ms", "type": "number"},
+    {"name": "inp_ms", "type": "number"},
+    {"name": "cls", "type": "number"},
+    {"name": "long_tasks_count", "type": "integer"},
+    {"name": "ui_error_count", "type": "integer"},
+    {"name": "dom_node_count", "type": "integer"},
+    {"name": "interactive_elements_count", "type": "integer"},
+    {"name": "ts", "type": "string"},
+    {"name": "page", "type": "string"},
+    {"name": "session_id", "type": "string"},
+    {"name": "build_id", "type": "string"}
+  ],
+  "calculation": "Each metric is normalized to 0-1, weighted linear combination, scaled to 0-100 and rounded",
+  "outputRange": "0-100 integer",
+  "operationalInterpretation": "0-30: healthy, 31-60: degraded but acceptable, 61-80: serious degradation, >80: critical regression"
+}

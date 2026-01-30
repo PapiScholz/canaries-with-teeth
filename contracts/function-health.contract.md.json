@@ -1,0 +1,38 @@
+{
+  "purpose": "Deterministically track health of critical user-facing functions for release gating.",
+  "inputs": [
+    {"name": "functionId", "type": "string"},
+    {"name": "invocationCount", "type": "integer"},
+    {"name": "errorCount", "type": "integer"},
+    {"name": "latencyMsP95", "type": "number"},
+    {"name": "coldStartMs", "type": "number"},
+    {"name": "logicalDrift", "type": "number"}
+  ],
+  "calculation": {
+    "errorRate": "errorCount / invocationCount",
+    "healthStatus": "BLOCK if errorRate > 0.05 OR latencyMsP95 > 2000 OR coldStartMs > 5000 OR logicalDrift > 0.2; WARN if errorRate in (0.01,0.05] OR latencyMsP95 in (1000,2000] OR coldStartMs in (2000,5000] OR logicalDrift in (0.1,0.2]; OK otherwise"
+  },
+  "thresholds": {
+    "errorRate": {"OK": "<=0.01", "WARN": "(0.01-0.05]", "BLOCK": ">0.05"},
+    "latencyMsP95": {"OK": "<=1000", "WARN": "(1000-2000]", "BLOCK": ">2000"},
+    "coldStartMs": {"OK": "<=2000", "WARN": "(2000-5000]", "BLOCK": ">5000"},
+    "logicalDrift": {"OK": "<=0.1", "WARN": "(0.1-0.2]", "BLOCK": ">0.2"}
+  },
+  "outputs": [
+    {"name": "healthStatus", "type": "string", "enum": ["OK", "WARN", "BLOCK"]},
+    {"name": "functionId", "type": "string"},
+    {"name": "invocationCount", "type": "integer"},
+    {"name": "errorCount", "type": "integer"},
+    {"name": "latencyMsP95", "type": "number"},
+    {"name": "coldStartMs", "type": "number"},
+    {"name": "logicalDrift", "type": "number"}
+  ],
+  "gatingImpact": "BLOCK if any critical function healthStatus == BLOCK; log all BLOCK/WARN reasons",
+  "functionId": "checkout",
+  "invocationCount": 1000,
+  "errorCount": 5,
+  "latencyMsP95": 900,
+  "coldStartMs": 1500,
+  "logicalDrift": 0.05,
+  "healthStatus": "OK"
+}

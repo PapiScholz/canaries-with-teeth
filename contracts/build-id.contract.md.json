@@ -1,0 +1,12 @@
+{
+  "purpose": "Provide a stable, deterministic identifier for every deploy in order to correlate canaries, telemetry, and risk evaluation across systems.",
+  "inputs": [
+    {"name": "build_id", "type": "string"},
+    {"name": "commit_hash", "type": "string"},
+    {"name": "build_timestamp", "type": "string"},
+    {"name": "environment", "type": "string"}
+  ],
+  "calculation": "build_id = <commit_hash>-<ci_build_number>; build_timestamp = build creation time; environment explicit",
+  "outputRange": "String, globally unique per deploy within the same environment",
+  "gatingImpact": "BLOCK if build_id or commit_hash missing, or build_id duplicated in environment; telemetry without build_id is invalid for gating"
+}

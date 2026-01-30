@@ -1,0 +1,12 @@
+{
+  "purpose": "Define and validate all telemetry event schemas.",
+  "inputs": [
+    {"name": "event_name", "type": "string"},
+    {"name": "schema_version", "type": "string"},
+    {"name": "required_fields", "type": "array", "items": {"type": "string"}},
+    {"name": "optional_fields", "type": "array", "items": {"type": "string"}}
+  ],
+  "calculation": "Validate event payloads against schema",
+  "outputRange": "Pass/Fail (boolean)",
+  "gatingImpact": "BLOCK if schema drift is detected"
+}

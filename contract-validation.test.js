@@ -22,10 +22,19 @@ function checkRange(val, min, max, field) {
 // Validate function-health.contract.md
 (function validateFunctionHealth() {
   const contract = require('./contracts/function-health.contract.md.json');
-  checkField(contract, 'latencyMs', 'number');
-  checkRange(contract.latencyMs, 0, 60000, 'latencyMs');
-  checkField(contract, 'errorRate', 'number');
-  checkRange(contract.errorRate, 0, 1, 'errorRate');
+  // Usar latencyMsP95 según contrato actual
+  checkField(contract, 'latencyMsP95', 'number');
+  checkRange(contract.latencyMsP95, 0, 60000, 'latencyMsP95');
+  // Calcular errorRate si no está presente
+  let errorRate = contract.errorRate;
+  if (typeof errorRate !== 'number') {
+    if ('errorCount' in contract && 'invocationCount' in contract && contract.invocationCount > 0) {
+      errorRate = contract.errorCount / contract.invocationCount;
+    } else {
+      fail('Missing errorRate or fields to compute it');
+    }
+  }
+  checkRange(errorRate, 0, 1, 'errorRate');
   checkField(contract, 'coldStartMs', 'number');
   checkRange(contract.coldStartMs, 0, 60000, 'coldStartMs');
   checkField(contract, 'logicalDrift', 'number');

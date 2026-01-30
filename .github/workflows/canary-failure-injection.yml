@@ -1,0 +1,91 @@
+# Canary Failure Injection Validation
+# This workflow proves that release gating blocks on explicit canary failures.
+# It is NOT for normal releases. It runs only to validate failure handling.
+
+name: Canary Failure Injection Proof
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  canary-failure-functional:
+    name: Canary Failure (functional)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install -g playwright && npm install
+      - name: Run E2E canaries (functional fail)
+        env:
+          CANARY_FAILURE_MODE: functional
+        run: bash e2e/run-canaries.sh
+      - name: Export CANARY_PASSED
+        run: cat canary-status.env >> $GITHUB_ENV
+      - name: Print canary result
+        run: echo "CANARY_PASSED=$CANARY_PASSED"
+      - name: Run release gate
+        run: node src/gating/run-release-gate.ts
+      - name: Upload gating artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-artifact-functional
+          path: release-gate-artifact.json
+
+  canary-failure-performance-p95:
+    name: Canary Failure (performance_p95)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install -g playwright && npm install
+      - name: Run E2E canaries (performance_p95 fail)
+        env:
+          CANARY_FAILURE_MODE: performance_p95
+        run: bash e2e/run-canaries.sh
+      - name: Export CANARY_PASSED
+        run: cat canary-status.env >> $GITHUB_ENV
+      - name: Print canary result
+        run: echo "CANARY_PASSED=$CANARY_PASSED"
+      - name: Run release gate
+        run: node src/gating/run-release-gate.ts
+      - name: Upload gating artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-artifact-performance-p95
+          path: release-gate-artifact.json
+
+  canary-failure-performance-hardcap:
+    name: Canary Failure (performance_hardcap)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install -g playwright && npm install
+      - name: Run E2E canaries (performance_hardcap fail)
+        env:
+          CANARY_FAILURE_MODE: performance_hardcap
+        run: bash e2e/run-canaries.sh
+      - name: Export CANARY_PASSED
+        run: cat canary-status.env >> $GITHUB_ENV
+      - name: Print canary result
+        run: echo "CANARY_PASSED=$CANARY_PASSED"
+      - name: Run release gate
+        run: node src/gating/run-release-gate.ts
+      - name: Upload gating artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-artifact-performance-hardcap
+          path: release-gate-artifact.json

@@ -1,17 +1,15 @@
 
+
 # Copilot Instructions for AI Agents
 
-## Project Overview
-This repository is a **reference architecture** for production canaries, telemetry, and deterministic release gating. It is not a runnable product, but a model for building systems that:
-- Detect regressions early (via canaries and telemetry)
-- Make deterministic, auditable deployment decisions
-- Enforce explicit, versioned contracts for all signals
+## Project Purpose & Structure
+This repository is a **reference architecture** for deterministic release gating, canary analysis, and contract-based telemetry. It is not a runnable product—focus is on patterns, not execution.
 
-## Architecture & Major Components
-- **Contracts-first:** All metrics, signals, and schemas are versioned and defined in `contracts/`. Changing a contract is a breaking change and must be versioned.
+## Architecture Overview
+- **Contracts-First:** All signals, metrics, and schemas are versioned and defined in `contracts/`. Any change is a breaking change and must be versioned/documented.
 - **Synthetic Canaries:** E2E and performance canaries are modeled for CI and scheduled runs. Canary failures block release (see `src/gating/`).
 - **Telemetry:** All telemetry is contract-based, versioned, and schema-validated. Telemetry must never break user flows (silent-fail pattern).
-- **Risk Aggregation:** Daily aggregation enforces schema and idempotency. Risk score is deterministic (0–100), never ML-based.
+- **Risk Aggregation:** Daily aggregation is schema-enforced and idempotent. Risk score is deterministic (0–100), never ML-based.
 - **Release Gates:** Gating logic is explicit and deterministic—block on canary fail or risk score threshold. See `src/gating/release-gate.ts` and `src/gating/run-release-gate.ts`.
 
 ## Key Conventions & Patterns
@@ -39,6 +37,7 @@ This repository is a **reference architecture** for production canaries, telemet
 - `docs/01-architecture.md`: System architecture and data flow
 - `contracts/`: All versioned contracts for telemetry, risk, and gating
 - `src/gating/`: Example gating logic and patterns
+- `e2e/`: Example canary specs and scripts
 
 ## Example Patterns
 - **Release gating:**

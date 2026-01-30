@@ -1,0 +1,13 @@
+{
+  "purpose": "Provide a single deterministic signal (0-100) that summarizes product and system risk for release gating.",
+  "inputs": [
+    {"name": "UDI", "type": "number"},
+    {"name": "FunctionHealth", "type": "number"},
+    {"name": "Friction", "type": "number"},
+    {"name": "Trend_UDI", "type": "number"},
+    {"name": "Trend_FunctionHealth", "type": "number"}
+  ],
+  "calculation": "riskScore = 0.35 * UDI + 0.30 * FunctionHealth + 0.15 * Friction + 0.12 * Trend_UDI + 0.08 * Trend_FunctionHealth; all components clamped 0-100; rounded, deterministic",
+  "outputRange": "0-100 integer",
+  "operationalInterpretation": "0-30: healthy, 31-60: degraded but acceptable, 61-80: serious degradation, >80: critical regression"
+}
