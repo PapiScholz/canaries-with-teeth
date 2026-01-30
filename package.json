@@ -1,0 +1,17 @@
+{
+  "name": "canaries-with-teeth",
+  "version": "1.0.0",
+  "description": "Zero-config deterministic canary, telemetry, risk, and gating system.",
+  "bin": {
+    "canaries": "bin/canaries-init.js",
+    "canaries-run": "bin/canaries-run.js"
+  },
+  "scripts": {
+    "canaries:init": "node bin/canaries-init.js",
+    "canaries:run": "node bin/canaries-run.js",
+    "canaries:dashboard": "node bin/canaries-run.js"
+  },
+  "dependencies": {
+    "playwright": "^1.41.0"
+  }
+}
