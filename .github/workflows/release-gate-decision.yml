@@ -1,0 +1,90 @@
+# Release Gate Decision Commenter
+# This workflow posts a deterministic comment on PRs summarizing the release gate decision.
+
+name: Release Gate Decision Comment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  gate-decision-comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find release gate artifact
+        id: find_artifact
+        run: |
+          if [ -f release-gate-artifact.json ]; then
+            echo "found=true" >> $GITHUB_OUTPUT
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Parse release gate artifact
+        id: parse_artifact
+        if: steps.find_artifact.outputs.found == 'true'
+        run: |
+          DECISION=$(jq -r '.decision' release-gate-artifact.json)
+          CANARY_PASSED=$(jq -r '.inputs.CANARY_PASSED' release-gate-artifact.json)
+          RISK_SCORE=$(jq -r '.inputs.riskScore' release-gate-artifact.json)
+          REASONS=$(jq -r '.reasons[]' release-gate-artifact.json | sed 's/^/- /')
+          ARTIFACT_EXCERPT=$(cat release-gate-artifact.json | head -20)
+          echo "decision=$DECISION" >> $GITHUB_OUTPUT
+          echo "canary_passed=$CANARY_PASSED" >> $GITHUB_OUTPUT
+          echo "risk_score=$RISK_SCORE" >> $GITHUB_OUTPUT
+          echo "reasons<<EOF" >> $GITHUB_OUTPUT
+          echo "$REASONS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "artifact_excerpt<<EOF" >> $GITHUB_OUTPUT
+          echo "$ARTIFACT_EXCERPT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Get timestamp
+        id: timestamp
+        run: echo "ts=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+
+      - name: Compose comment body
+        id: comment_body
+        run: |
+          if [ "${{ steps.find_artifact.outputs.found }}" = "true" ]; then
+            cat <<EOF > comment.txt
+**Release Gate Decision**
+
+- **Decision:** ${{ steps.parse_artifact.outputs.decision }}
+- **Reasons:**
+${{ steps.parse_artifact.outputs.reasons }}
+- **Inputs:**
+  - CANARY_PASSED: ${{ steps.parse_artifact.outputs.canary_passed }}
+  - riskScore: ${{ steps.parse_artifact.outputs.risk_score }}
+- **Artifact excerpt:**
+```
+${{ steps.parse_artifact.outputs.artifact_excerpt }}
+```
+- **Timestamp:** ${{ steps.timestamp.outputs.ts }}
+EOF
+          else
+            cat <<EOF > comment.txt
+**Release Gate Decision**
+
+- **Artifact missing:** release-gate-artifact.json not found in this PR context.
+- **Timestamp:** ${{ steps.timestamp.outputs.ts }}
+EOF
+          fi
+
+      - name: Find existing comment
+        id: find_comment
+        uses: peter-evans/find-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-includes: "**Release Gate Decision**"
+
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: comment.txt
+          comment-id: ${{ steps.find_comment.outputs.comment-id }}
+          edit-mode: replace
