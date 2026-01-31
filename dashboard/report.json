@@ -1,0 +1,15 @@
+{
+  "status": "BLOCK",
+  "riskDecision": "BLOCK",
+  "riskScore": 78,
+  "blockingReasons": [
+    "Canary failed: login flow regression",
+    "UDI p95 exceeded baseline"
+  ],
+  "recentRuns": [
+    {
+      "date": "2026-01-31",
+      "status": "BLOCK"
+    }
+  ]
+}
