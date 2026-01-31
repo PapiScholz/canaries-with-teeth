@@ -1,4 +1,16 @@
-import { DailyRiskForecast } from "../gating/risk-forecast";
+
+// Minimal contract for DailyRiskForecast (MODE 0 consumer only)
+export interface DailyRiskForecast {
+  riskScore?: number;
+  components?: {
+    udiZ?: number;
+    frictionZ?: number;
+    latencyZ?: number;
+    driftZ?: number;
+    errorZ?: number;
+    udiTrend?: number;
+  };
+}
 
 export type RiskDecision = "ALLOW" | "SOFT_BLOCK" | "BLOCK";
 
