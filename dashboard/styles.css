@@ -1,0 +1,7 @@
+body { font-family: sans-serif; background: #f9f9f9; margin: 0; padding: 0; }
+#dashboard { max-width: 600px; margin: 2em auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #0001; padding: 2em; }
+h1 { margin-top: 0; }
+.status-ok { color: green; }
+.status-fail { color: orange; }
+.status-blocked { color: red; }
+#file-loader { margin-top: 2em; }

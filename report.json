@@ -1,0 +1,7 @@
+{
+  "title": "Test Dashboard",
+  "status": "OK",
+  "riskScoreHistory": [10, 20, 30, 40, 50, 60, 70],
+  "blockingReasons": ["None"],
+  "recentRuns": ["2026-01-30T12:00:00Z", "2026-01-29T12:00:00Z", "2026-01-28T12:00:00Z"]
+}

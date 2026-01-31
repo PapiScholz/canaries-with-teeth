@@ -1,0 +1,9 @@
+{
+  "name": "canaries",
+  "version": "1.0.0",
+  "bin": {
+    "canaries": "bin/canaries.js"
+  },
+  "description": "Canaries CLI for dashboard and utilities",
+  "type": "module"
+}
