@@ -52,11 +52,9 @@ Artifacts:
 
 ---
 
+
 ## Static Dashboard
-
-
-Generate a static dashboard for every run:
-(Pure HTML. No backend. Open locally or serve anywhere.)
+Generate a static dashboard for every run: (Pure HTML. No backend. Open locally or serve anywhere.)
 
 ```sh
 npx canaries dashboard
