@@ -2,6 +2,48 @@ name: Release Gate
 
 on:
   push:
+    branches: [main]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [main]
+
+jobs:
+  release-gate:
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      GATE_DATE: ${{ github.event.head_commit.timestamp || github.event.pull_request.updated_at || github.run_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Canary
+        run: bash scripts/ci/run-canary.sh || true
+
+      - name: Fetch Risk Decision
+        run: node scripts/ci/fetch-risk-decision.mjs
+
+      - name: Run Release Gate
+        id: gate
+        run: node scripts/ci/release-gate.mjs
+
+      - name: Upload Gating Artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: gating-artifacts
+          path: artifacts/gating/name: Release Gate
+
+on:
+  push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
