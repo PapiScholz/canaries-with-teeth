@@ -42,7 +42,7 @@ If a canary fails or risk is too high, your release is blocked.
 ```
 RELEASE BLOCKED
 
-Reason: Canary failure detected
+Reason: Canary failed (login flow regression)
 Risk Decision: BLOCK
 Artifacts:
   - e2e/canary.e2e.spec.js
@@ -54,7 +54,9 @@ Artifacts:
 
 ## Static Dashboard
 
+
 Generate a static dashboard for every run:
+(Pure HTML. No backend. Open locally or serve anywhere.)
 
 ```sh
 npx canaries dashboard
@@ -70,6 +72,7 @@ npx canaries dashboard
 - No contracts or formulas visible
 - No tuning
 - Works out of the box
+- Deterministic decisions only
 
 ---
 
