@@ -3,7 +3,7 @@
 const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
-  testDir: './e2e',
+  testDir: './tests',
   retries: 0,
   timeout: 30000, // 30s per test max
   reporter: [['list']],
