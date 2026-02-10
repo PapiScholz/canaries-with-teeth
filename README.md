@@ -144,6 +144,39 @@ El dashboard son archivos HTML puros, sin backend. Funcionan en cualquier lado.
 - Rojo = hay un problema
 - Lista de cambios = qué agregaste o eliminaste
 
+### Seguridad del dashboard (importante)
+
+**El dashboard NO está pensado para ser público.**
+
+Aunque sean archivos HTML que podés abrir en cualquier navegador, **contienen información sensible** sobre tu aplicación:
+
+- Todas las rutas y páginas que existen
+- Qué funcionalidades agregaste o eliminaste
+- Errores internos y dónde ocurren
+- Estructura de navegación completa
+- Flujos críticos de la aplicación
+
+**Publicar esto sin protección expone información que un atacante puede usar para encontrar vulnerabilidades.**
+
+**En producción, el dashboard debe ser:**
+
+1. **Detrás de autenticación**: Solo accesible con usuario y contraseña
+2. **En red privada**: Accesible solo desde VPN o red interna de la empresa
+3. **Artefacto de CI**: Descargable solo desde tu sistema de integración continua
+4. **NO público**: Nunca accesible desde internet sin protección
+
+**Uso seguro:**
+
+✅ Abrirlo localmente en tu computadora durante desarrollo  
+✅ Compartirlo internamente con tu equipo (con acceso controlado)  
+✅ Usarlo como artefacto temporal en CI/CD  
+
+❌ Subirlo a GitHub Pages público  
+❌ Publicarlo en Netlify/Vercel sin autenticación  
+❌ Dejarlo accesible desde cualquier URL pública  
+
+**El hecho de que sea HTML estático no lo hace seguro para publicar sin control de acceso.**
+
 ## ¿Qué cosas NO hay que tocar?
 
 Para que funcione correctamente, **no modifiques:**
