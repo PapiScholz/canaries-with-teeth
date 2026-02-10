@@ -27,6 +27,12 @@ function renderDashboard(report) {
   } else {
     document.getElementById('service-map-section').innerHTML = '';
   }
+  // Service Map Diff
+  if (report.serviceMapDiff) {
+    renderServiceMapDiff(report.serviceMapDiff);
+  } else {
+    document.getElementById('service-map-diff-section').innerHTML = '';
+  }
 }
 
 function renderServiceMap(serviceMap) {
@@ -118,6 +124,165 @@ function renderServiceMap(serviceMap) {
       }
       .edge-high-latency { background: #fff3cd; border-left-color: #ff9800; }
       .edge-error { background: #f8d7da; border-left-color: #dc3545; }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+function renderServiceMapDiff(diff) {
+  const section = document.getElementById('service-map-diff-section');
+  
+  if (!diff || (!diff.addedNodes?.length && !diff.removedNodes?.length && 
+      !diff.addedEdges?.length && !diff.removedEdges?.length && !diff.changedEdges?.length)) {
+    section.innerHTML = '<h3>Architecture Changes</h3><p><i>No changes detected or no baseline available</i></p>';
+    return;
+  }
+  
+  let html = '<h3>Architecture Changes</h3>';
+  html += '<div class="service-map-diff">';
+  
+  // Added nodes
+  if (diff.addedNodes?.length > 0) {
+    html += '<div class="diff-section added-section">';
+    html += '<h4>✚ Added Nodes</h4>';
+    html += '<ul>';
+    for (const node of diff.addedNodes) {
+      html += `<li><span class="node-type-badge ${node.type}">${node.type}</span> ${node.id}</li>`;
+    }
+    html += '</ul></div>';
+  }
+  
+  // Removed nodes
+  if (diff.removedNodes?.length > 0) {
+    html += '<div class="diff-section removed-section">';
+    html += '<h4>✕ Removed Nodes</h4>';
+    html += '<ul>';
+    for (const node of diff.removedNodes) {
+      html += `<li><span class="node-type-badge ${node.type}">${node.type}</span> ${node.id}</li>`;
+    }
+    html += '</ul></div>';
+  }
+  
+  // Added edges
+  if (diff.addedEdges?.length > 0) {
+    html += '<div class="diff-section added-section">';
+    html += '<h4>✚ Added Edges</h4>';
+    html += '<ul>';
+    for (const edge of diff.addedEdges) {
+      const hasError = edge.errorRate > 0;
+      html += `<li><b>${edge.from}</b> → <b>${edge.to}</b>: `;
+      html += `<span title="P95 Latency">⏱ ${edge.latencyP95}ms</span>`;
+      if (hasError) {
+        html += ` <span title="Error Rate" style="color: #dc3545;">⚠ ${(edge.errorRate * 100).toFixed(1)}%</span>`;
+      }
+      html += `</li>`;
+    }
+    html += '</ul></div>';
+  }
+  
+  // Removed edges
+  if (diff.removedEdges?.length > 0) {
+    html += '<div class="diff-section removed-section">';
+    html += '<h4>✕ Removed Edges</h4>';
+    html += '<ul>';
+    for (const edge of diff.removedEdges) {
+      html += `<li><b>${edge.from}</b> → <b>${edge.to}</b>: `;
+      html += `<span title="Baseline P95 Latency">⏱ ${edge.baselineLatencyP95}ms</span>`;
+      if (edge.baselineErrorRate > 0) {
+        html += ` <span title="Baseline Error Rate" style="color: #dc3545;">⚠ ${(edge.baselineErrorRate * 100).toFixed(1)}%</span>`;
+      }
+      html += `</li>`;
+    }
+    html += '</ul></div>';
+  }
+  
+  // Changed edges
+  if (diff.changedEdges?.length > 0) {
+    html += '<div class="diff-section changed-section">';
+    html += '<h4>⟳ Changed Edges</h4>';
+    html += '<ul>';
+    for (const edge of diff.changedEdges) {
+      const isSlower = edge.latencyChange > 0;
+      const isMoreErrors = edge.errorRateChange > 0;
+      html += `<li><b>${edge.from}</b> → <b>${edge.to}</b><br/>`;
+      html += `<span style="margin-left: 20px;">`;
+      html += `Latency: ${edge.baselineLatencyP95}ms → ${edge.currentLatencyP95}ms `;
+      if (isSlower) {
+        html += `<span style="color: #ff9800;">+${edge.latencyChange}ms</span>`;
+      } else {
+        html += `<span style="color: #00cc66;">${edge.latencyChange}ms</span>`;
+      }
+      html += `<br/>`;
+      html += `Errors: ${(edge.baselineErrorRate * 100).toFixed(1)}% → ${(edge.currentErrorRate * 100).toFixed(1)}% `;
+      if (isMoreErrors) {
+        html += `<span style="color: #dc3545;">+${(edge.errorRateChange * 100).toFixed(1)}%</span>`;
+      } else {
+        html += `<span style="color: #00cc66;">${(edge.errorRateChange * 100).toFixed(1)}%</span>`;
+      }
+      html += `</span></li>`;
+    }
+    html += '</ul></div>';
+  }
+  
+  html += '</div>';
+  section.innerHTML = html;
+  
+  // Add diff-specific styles if not already present
+  if (!document.getElementById('service-map-diff-styles')) {
+    const style = document.createElement('style');
+    style.id = 'service-map-diff-styles';
+    style.textContent = `
+      .service-map-diff {
+        margin: 10px 0;
+      }
+      .diff-section {
+        margin: 10px 0;
+        padding: 10px;
+        border-left: 4px solid #999;
+        background: #f9f9f9;
+      }
+      .diff-section h4 {
+        margin-top: 0;
+        margin-bottom: 8px;
+      }
+      .diff-section.added-section {
+        border-left-color: #00cc66;
+        background: #f0fff4;
+      }
+      .diff-section.removed-section {
+        border-left-color: #dc3545;
+        background: #fff5f5;
+      }
+      .diff-section.changed-section {
+        border-left-color: #ff9800;
+        background: #fffaf0;
+      }
+      .diff-section ul {
+        margin: 5px 0;
+        padding-left: 20px;
+      }
+      .diff-section li {
+        margin: 5px 0;
+        line-height: 1.6;
+      }
+      .node-type-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.7em;
+        font-weight: bold;
+        margin-right: 8px;
+        color: white;
+      }
+      .node-type-badge.frontend {
+        background: #00cc66;
+      }
+      .node-type-badge.service {
+        background: #0066cc;
+      }
+      .node-type-badge.function {
+        background: #cc6600;
+      }
     `;
     document.head.appendChild(style);
   }

@@ -19,8 +19,69 @@ export interface ServiceEdge {
 
 export interface ServiceMap {
   buildId: string;
+  hash: string; // SHA256 hex digest for determinism validation
   nodes: ServiceNode[];
   edges: ServiceEdge[];
+}
+
+/**
+ * Service Map Diff v1 - First-class artifact describing structural and numeric change
+ *
+ * Facts only. No interpretation, classification, or severity judgment.
+ * Baseline vs current comparison for observational purposes.
+ * Input (only) for future Service-Map-based gating (if v2 activates).
+ */
+export interface AddedEdge {
+  from: string;
+  to: string;
+  latencyP95: number;
+  errorRate: number;
+}
+
+export interface RemovedEdge {
+  from: string;
+  to: string;
+  baselineLatencyP95: number;
+  baselineErrorRate: number;
+}
+
+export interface ChangedEdge {
+  from: string;
+  to: string;
+  baselineLatencyP95: number;
+  currentLatencyP95: number;
+  latencyChange: number; // current - baseline (positive = slower)
+  baselineErrorRate: number;
+  currentErrorRate: number;
+  errorRateChange: number; // current - baseline (positive = more errors)
+}
+
+export interface AddedNode {
+  id: string;
+  type: "frontend" | "service" | "function";
+}
+
+export interface RemovedNode {
+  id: string;
+  type: "frontend" | "service" | "function";
+}
+
+export interface CriticalPathInfo {
+  baselineLength: number;
+  currentLength: number;
+  lengthChange: number; // current - baseline (positive = longer)
+}
+
+export interface ServiceMapDiff {
+  buildId: string;
+  hash: string; // SHA256 hex digest for determinism validation
+  baselineMapHash: string | null; // Hash of baseline map, null if no baseline exists
+  addedNodes: AddedNode[];
+  removedNodes: RemovedNode[];
+  addedEdges: AddedEdge[];
+  removedEdges: RemovedEdge[];
+  changedEdges: ChangedEdge[];
+  criticalPath: CriticalPathInfo | null; // Non-normative derived field, null if not computed
 }
 
 /**

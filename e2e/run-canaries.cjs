@@ -5,6 +5,7 @@ const fs = require('fs');
 const http = require('http');
 const https = require('https');
 const path = require('path');
+const crypto = require('crypto');
 
 const ARTIFACTS_DIR = path.join(process.cwd(), 'artifacts', 'gating');
 const DASHBOARD_DIR = path.join(process.cwd(), 'artifacts', 'dashboard');
@@ -276,7 +277,11 @@ function buildServiceMap(buildId, networkObservations) {
     return cmp !== 0 ? cmp : a.to.localeCompare(b.to);
   });
 
-  return { buildId, nodes, edges };
+  // Compute hash for determinism validation and replay support
+  const canonicalJson = JSON.stringify({ buildId, nodes, edges });
+  const hash = computeHash(canonicalJson);
+
+  return { buildId, hash, nodes, edges };
 }
 
 function extractServiceName(url) {
@@ -314,6 +319,189 @@ function computeP95(values) {
   const sorted = [...values].sort((a, b) => a - b);
   const idx = Math.ceil((95 / 100) * sorted.length) - 1;
   return sorted[Math.max(0, idx)];
+}
+
+/**
+ * Compute SHA256 hash of canonical JSON
+ * Used for determinism validation and replay support
+ */
+function computeHash(data) {
+  return crypto.createHash('sha256').update(data).digest('hex');
+}
+
+/**
+ * Add hash to Service Map
+ * Deterministic: same inputs produce identical hash
+ */
+function hashServiceMap(serviceMap) {
+  const canonicalJson = JSON.stringify({
+    buildId: serviceMap.buildId,
+    nodes: serviceMap.nodes,
+    edges: serviceMap.edges,
+  });
+  const hash = computeHash(canonicalJson);
+  return { ...serviceMap, hash };
+}
+
+/**
+ * Build Service Map Diff comparing current to baseline
+ * Facts only: added/removed nodes, added/removed edges, numeric deltas
+ */
+function buildServiceMapDiff(buildId, currentMap, baselineMap) {
+  const addedNodes = [];
+  const removedNodes = [];
+  const addedEdges = [];
+  const removedEdges = [];
+  const changedEdges = [];
+
+  // If no baseline, everything in current is "added"
+  if (!baselineMap) {
+    for (const node of currentMap.nodes) {
+      addedNodes.push({ id: node.id, type: node.type });
+    }
+    for (const edge of currentMap.edges) {
+      addedEdges.push({
+        from: edge.from,
+        to: edge.to,
+        latencyP95: edge.latencyP95,
+        errorRate: edge.errorRate,
+      });
+    }
+  } else {
+    // Compare nodes
+    const baselineNodeIds = new Set(baselineMap.nodes.map(n => n.id));
+    const currentNodeIds = new Set(currentMap.nodes.map(n => n.id));
+
+    for (const node of currentMap.nodes) {
+      if (!baselineNodeIds.has(node.id)) {
+        addedNodes.push({ id: node.id, type: node.type });
+      }
+    }
+
+    for (const node of baselineMap.nodes) {
+      if (!currentNodeIds.has(node.id)) {
+        removedNodes.push({ id: node.id, type: node.type });
+      }
+    }
+
+    // Compare edges
+    const baselineEdgeMap = new Map();
+    for (const edge of baselineMap.edges) {
+      baselineEdgeMap.set(`${edge.from}→${edge.to}`, edge);
+    }
+
+    const currentEdgeMap = new Map();
+    for (const edge of currentMap.edges) {
+      currentEdgeMap.set(`${edge.from}→${edge.to}`, edge);
+    }
+
+    // Added and changed edges
+    for (const edge of currentMap.edges) {
+      const key = `${edge.from}→${edge.to}`;
+      const baselineEdge = baselineEdgeMap.get(key);
+
+      if (!baselineEdge) {
+        addedEdges.push({
+          from: edge.from,
+          to: edge.to,
+          latencyP95: edge.latencyP95,
+          errorRate: edge.errorRate,
+        });
+      } else if (
+        baselineEdge.latencyP95 !== edge.latencyP95 ||
+        baselineEdge.errorRate !== edge.errorRate
+      ) {
+        changedEdges.push({
+          from: edge.from,
+          to: edge.to,
+          baselineLatencyP95: baselineEdge.latencyP95,
+          currentLatencyP95: edge.latencyP95,
+          latencyChange: edge.latencyP95 - baselineEdge.latencyP95,
+          baselineErrorRate: baselineEdge.errorRate,
+          currentErrorRate: edge.errorRate,
+          errorRateChange: edge.errorRate - baselineEdge.errorRate,
+        });
+      }
+    }
+
+    // Removed edges
+    for (const edge of baselineMap.edges) {
+      const key = `${edge.from}→${edge.to}`;
+      if (!currentEdgeMap.has(key)) {
+        removedEdges.push({
+          from: edge.from,
+          to: edge.to,
+          baselineLatencyP95: edge.latencyP95,
+          baselineErrorRate: edge.errorRate,
+        });
+      }
+    }
+  }
+
+  // Sort deterministically
+  addedNodes.sort((a, b) => a.id.localeCompare(b.id));
+  removedNodes.sort((a, b) => a.id.localeCompare(b.id));
+  addedEdges.sort((a, b) => {
+    const cmp = a.from.localeCompare(b.from);
+    return cmp !== 0 ? cmp : a.to.localeCompare(b.to);
+  });
+  removedEdges.sort((a, b) => {
+    const cmp = a.from.localeCompare(b.from);
+    return cmp !== 0 ? cmp : a.to.localeCompare(b.to);
+  });
+  changedEdges.sort((a, b) => {
+    const cmp = a.from.localeCompare(b.from);
+    return cmp !== 0 ? cmp : a.to.localeCompare(b.to);
+  });
+
+  // Build diff object with deterministic hash
+  const diffContent = {
+    buildId,
+    addedNodes,
+    removedNodes,
+    addedEdges,
+    removedEdges,
+    changedEdges,
+    criticalPath: null, // Non-normative, null for v1
+  };
+  const canonicalJson = JSON.stringify(diffContent);
+  const hash = computeHash(canonicalJson);
+
+  return {
+    buildId,
+    hash,
+    baselineMapHash: baselineMap?.hash || null,
+    addedNodes,
+    removedNodes,
+    addedEdges,
+    removedEdges,
+    changedEdges,
+    criticalPath: null,
+  };
+}
+
+/**
+ * Load baseline Service Map from previous stable build
+ * Returns null if no baseline exists
+ */
+function loadBaseline(serviceMapsDir) {
+  const baselineFile = path.join(serviceMapsDir, 'baseline.json');
+  if (!fs.existsSync(baselineFile)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(baselineFile, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Save current map as baseline for next run
+ * This is typically done after a successful release
+ */
+function saveAsBaseline(serviceMapsDir, serviceMap) {
+  const baselineFile = path.join(serviceMapsDir, 'baseline.json');
+  fs.mkdirSync(serviceMapsDir, { recursive: true });
+  fs.writeFileSync(baselineFile, JSON.stringify(serviceMap, null, 2));
 }
 
 function gateRelease(canaryPassed, riskScore) {
@@ -391,7 +579,7 @@ function detectRegression(metrics, baseline) {
   return { reasons };
 }
 
-function buildDashboardReport(canaryStatus, risk, gate, history, serviceMap) {
+function buildDashboardReport(canaryStatus, risk, gate, history, serviceMap, serviceMapDiff) {
   const recentRuns = (history?.samples || []).slice(-5).map(sample => ({
     date: sample.timestamp,
     status: sample.status
@@ -404,7 +592,8 @@ function buildDashboardReport(canaryStatus, risk, gate, history, serviceMap) {
     riskScoreHistory: [risk.score],
     blockingReasons: gate.reasons,
     recentRuns,
-    serviceMap: serviceMap || null
+    serviceMap: serviceMap || null,
+    serviceMapDiff: serviceMapDiff || null
   };
 }
 
@@ -497,7 +686,12 @@ async function main() {
   fs.mkdirSync(serviceMapsDir, { recursive: true });
   writeJson(path.join(serviceMapsDir, `${buildId}.json`), serviceMap);
   
-  writeJson(path.join(DASHBOARD_DIR, 'report.json'), buildDashboardReport(canaryStatus, risk, gate, history, serviceMap));
+  // Build and write Service Map Diff
+  const baseline = loadBaseline(serviceMapsDir);
+  const serviceMapDiff = buildServiceMapDiff(buildId, serviceMap, baseline);
+  writeJson(path.join(serviceMapsDir, `${buildId}.diff.json`), serviceMapDiff);
+  
+  writeJson(path.join(DASHBOARD_DIR, 'report.json'), buildDashboardReport(canaryStatus, risk, gate, history, serviceMap, serviceMapDiff));
   
   fs.writeFileSync(CANARY_STATUS_ENV, `CANARY_PASSED=${String(canaryPassed).toLowerCase()}\n`);
 
