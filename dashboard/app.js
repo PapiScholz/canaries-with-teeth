@@ -21,6 +21,167 @@ function renderDashboard(report) {
   } else {
     document.getElementById('recent-section').innerHTML = '';
   }
+  // Service Map
+  if (report.serviceMap && report.serviceMap.nodes && report.serviceMap.edges) {
+    renderServiceMap(report.serviceMap);
+  } else {
+    document.getElementById('service-map-section').innerHTML = '';
+  }
+}
+
+function renderServiceMap(serviceMap) {
+  const section = document.getElementById('service-map-section');
+  const { nodes, edges } = serviceMap;
+  
+  if (!nodes || nodes.length === 0) {
+    section.innerHTML = '';
+    return;
+  }
+  
+  // Build adjacency map for tree traversal
+  const edgesByFrom = new Map();
+  edges.forEach(edge => {
+    if (!edgesByFrom.has(edge.from)) {
+      edgesByFrom.set(edge.from, []);
+    }
+    edgesByFrom.get(edge.from).push(edge);
+  });
+  
+  // Find root nodes (nodes that have outgoing edges but are not targets of other nodes)
+  const allTargets = new Set(edges.map(e => e.to));
+  const roots = nodes.filter(n => !allTargets.has(n.id) || n.type === 'frontend');
+  
+  let html = '<h3>Service Architecture Map</h3>';
+  html += '<div class="service-map-tree">';
+  
+  if (roots.length > 0) {
+    for (const root of roots) {
+      html += renderServiceNode(root, edgesByFrom, new Set());
+    }
+  } else {
+    html += '<p>No service topology detected</p>';
+  }
+  
+  html += '</div>';
+  section.innerHTML = html;
+  
+  // Add styles if not already present
+  if (!document.getElementById('service-map-styles')) {
+    const style = document.createElement('style');
+    style.id = 'service-map-styles';
+    style.textContent = `
+      .service-map-tree {
+        font-family: monospace;
+        margin: 10px 0;
+        border-left: 1px solid #ddd;
+        padding-left: 10px;
+      }
+      .service-node {
+        margin: 5px 0;
+        padding: 5px;
+        background: #f5f5f5;
+        border-left: 3px solid #0066cc;
+        cursor: pointer;
+      }
+      .service-node.service { border-left-color: #0066cc; }
+      .service-node.frontend { border-left-color: #00cc66; }
+      .service-node.function { border-left-color: #cc6600; }
+      .service-node-header {
+        font-weight: bold;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .service-node-expander {
+        margin-right: 8px;
+        user-select: none;
+      }
+      .service-node-details {
+        margin-top: 8px;
+        font-size: 0.9em;
+        color: #555;
+        display: none;
+      }
+      .service-node-details.expanded {
+        display: block;
+      }
+      .service-edges {
+        margin-left: 20px;
+        margin-top: 5px;
+      }
+      .service-edge {
+        margin: 3px 0;
+        padding: 3px;
+        background: #efefef;
+        border-left: 2px solid #999;
+        font-size: 0.85em;
+      }
+      .edge-high-latency { background: #fff3cd; border-left-color: #ff9800; }
+      .edge-error { background: #f8d7da; border-left-color: #dc3545; }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+function renderServiceNode(node, edgesByFrom, visited) {
+  if (visited.has(node.id)) {
+    return ''; // Prevent cycles
+  }
+  visited.add(node.id);
+  
+  const edges = edgesByFrom.get(node.id) || [];
+  const hasChildren = edges.length > 0;
+  
+  let html = `<div class="service-node ${node.type}">`;
+  html += `<div class="service-node-header">`;
+  
+  if (hasChildren) {
+    html += `<span class="service-node-expander" onclick="toggleNodeDetails(event)">▶</span>`;
+  } else {
+    html += `<span class="service-node-expander">•</span>`;
+  }
+  
+  html += `<span>${node.id}</span>`;
+  html += `<span style="font-size: 0.8em; color: #999; margin-left: 10px;">[${node.type}]</span>`;
+  html += `</div>`;
+  
+  if (hasChildren) {
+    html += `<div class="service-node-details${hasChildren ? ' expanded' : ''}">`;
+    html += '<div class="service-edges">';
+    
+    for (const edge of edges) {
+      const isHighLatency = edge.latencyP95 > 1000;
+      const hasError = edge.errorRate > 0;
+      let edgeClass = 'service-edge';
+      if (isHighLatency) edgeClass += ' edge-high-latency';
+      if (hasError) edgeClass += ' edge-error';
+      
+      html += `<div class="${edgeClass}">`;
+      html += `→ <b>${edge.to}</b>: `;
+      html += `<span title="P95 Latency">⏱ ${edge.latencyP95}ms</span>`;
+      if (hasError) {
+        html += ` <span title="Error Rate" style="color: #dc3545;">⚠ ${(edge.errorRate * 100).toFixed(1)}%</span>`;
+      }
+      html += `</div>`;
+    }
+    
+    html += '</div>';
+    html += '</div>';
+  }
+  
+  html += '</div>';
+  
+  return html;
+}
+
+function toggleNodeDetails(event) {
+  event.stopPropagation();
+  const header = event.target.parentElement;
+  const details = header.nextElementSibling;
+  if (details && details.classList.contains('service-node-details')) {
+    details.classList.toggle('expanded');
+    event.target.textContent = details.classList.contains('expanded') ? '▼' : '▶';
+  }
 }
 
 function tryLoadEmbedded() {

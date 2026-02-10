@@ -1,0 +1,71 @@
+{
+  "name": "service-maps",
+  "version": "1.0.0",
+  "purpose": "Deterministic snapshot of architecture exercised by a build",
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "ServiceMap",
+    "type": "object",
+    "required": ["buildId", "nodes", "edges"],
+    "properties": {
+      "buildId": {
+        "type": "string",
+        "description": "Unique identifier for the build"
+      },
+      "nodes": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["id", "type"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for the service/function node"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["frontend", "service", "function"],
+              "description": "Type of node"
+            }
+          }
+        }
+      },
+      "edges": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["from", "to", "latencyP95", "errorRate"],
+          "properties": {
+            "from": {
+              "type": "string",
+              "description": "Source node id"
+            },
+            "to": {
+              "type": "string",
+              "description": "Destination node id"
+            },
+            "latencyP95": {
+              "type": "number",
+              "description": "P95 latency in milliseconds",
+              "minimum": 0
+            },
+            "errorRate": {
+              "type": "number",
+              "description": "Error rate as fraction (0.0-1.0)",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        }
+      }
+    }
+  },
+  "aggregationRules": {
+    "latency": "P95 aggregated from all requests during build execution",
+    "errorRate": "Sum of error responses divided by total requests",
+    "topology": "Inferred from execution evidence only"
+  },
+  "gatingImpact": {
+    "v1": "Explanatory only, no gates introduced"
+  }
+}

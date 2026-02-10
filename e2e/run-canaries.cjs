@@ -209,6 +209,113 @@ function computeRisk(events) {
   return { score, reasons };
 }
 
+function collectNetworkObservations() {
+  let observations = [];
+  try {
+    const obsPath = path.join(process.cwd(), 'artifacts', 'gating', 'network-observations.json');
+    if (fs.existsSync(obsPath)) {
+      observations = JSON.parse(fs.readFileSync(obsPath, 'utf8')) || [];
+    }
+  } catch {}
+  return observations;
+}
+
+function buildServiceMap(buildId, networkObservations) {
+  const nodes = [];
+  const edgeMap = new Map();
+
+  // Always add frontend node
+  nodes.push({ id: 'frontend', type: 'frontend' });
+
+  // Process network observations
+  for (const obs of networkObservations) {
+    const serviceName = extractServiceName(obs.url);
+    if (!serviceName) continue;
+
+    // Ensure service node exists
+    if (!nodes.find(n => n.id === serviceName)) {
+      nodes.push({ id: serviceName, type: 'service' });
+    }
+
+    // Accumulate metrics to this service
+    const edgeKey = `frontend→${serviceName}`;
+    const metrics = edgeMap.get(edgeKey) || {
+      totalRequests: 0,
+      errorCount: 0,
+      latencies: [],
+    };
+
+    metrics.totalRequests += 1;
+    metrics.latencies.push(obs.latencyMs || 0);
+    if (obs.statusCode >= 400) {
+      metrics.errorCount += 1;
+    }
+
+    edgeMap.set(edgeKey, metrics);
+  }
+
+  // Build edges from accumulated metrics
+  const edges = [];
+  for (const [edgeKey, metrics] of edgeMap.entries()) {
+    const [from, to] = edgeKey.split('→');
+    const latencyP95 = computeP95(metrics.latencies);
+    const errorRate = metrics.totalRequests > 0 ? metrics.errorCount / metrics.totalRequests : 0;
+
+    edges.push({
+      from,
+      to,
+      latencyP95: Math.round(latencyP95),
+      errorRate: Math.round(errorRate * 10000) / 10000, // 4 decimals
+    });
+  }
+
+  // Sort deterministically
+  nodes.sort((a, b) => a.id.localeCompare(b.id));
+  edges.sort((a, b) => {
+    const cmp = a.from.localeCompare(b.from);
+    return cmp !== 0 ? cmp : a.to.localeCompare(b.to);
+  });
+
+  return { buildId, nodes, edges };
+}
+
+function extractServiceName(url) {
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname || '';
+    const pathname = parsed.pathname || '';
+
+    // Try hostname-based extraction
+    if (hostname.includes('api')) return 'api';
+    if (hostname.includes('auth')) return 'auth';
+    if (hostname.includes('search')) return 'search';
+    if (hostname.includes('payment')) return 'payment';
+
+    // Try path-based extraction (first path segment)
+    const segments = pathname.split('/').filter(s => s.length > 0);
+    if (segments.length > 0) {
+      const first = segments[0].toLowerCase();
+      // Filter out common file extensions
+      if (!/\.(js|css|png|jpg|gif|svg|ico)$/i.test(first) && first.length <= 30) {
+        return first;
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function computeP95(values) {
+  if (values.length === 0) return 0;
+  if (values.length === 1) return values[0];
+
+  const sorted = [...values].sort((a, b) => a - b);
+  const idx = Math.ceil((95 / 100) * sorted.length) - 1;
+  return sorted[Math.max(0, idx)];
+}
+
 function gateRelease(canaryPassed, riskScore) {
   if (!canaryPassed) return { decision: 'BLOCK', reasons: ['E2E canary failed'] };
   if (riskScore > 70) return { decision: 'BLOCK', reasons: [`Risk score ${riskScore} > 70`] };
@@ -284,7 +391,7 @@ function detectRegression(metrics, baseline) {
   return { reasons };
 }
 
-function buildDashboardReport(canaryStatus, risk, gate, history) {
+function buildDashboardReport(canaryStatus, risk, gate, history, serviceMap) {
   const recentRuns = (history?.samples || []).slice(-5).map(sample => ({
     date: sample.timestamp,
     status: sample.status
@@ -296,7 +403,8 @@ function buildDashboardReport(canaryStatus, risk, gate, history) {
     riskScore: risk.score,
     riskScoreHistory: [risk.score],
     blockingReasons: gate.reasons,
-    recentRuns
+    recentRuns,
+    serviceMap: serviceMap || null
   };
 }
 
@@ -380,7 +488,17 @@ async function main() {
 
   writeJson(path.join(ARTIFACTS_DIR, 'canary.json'), canaryResult);
   writeJson(path.join(ARTIFACTS_DIR, 'release-gate.json'), gateResult);
-  writeJson(path.join(DASHBOARD_DIR, 'report.json'), buildDashboardReport(canaryStatus, risk, gate, history));
+  
+  // Build and write Service Map
+  const buildId = process.env.BUILD_ID || startedAt.replace(/[:\-\.]/g, '').slice(0, 14);
+  const networkObs = collectNetworkObservations();
+  const serviceMap = buildServiceMap(buildId, networkObs);
+  const serviceMapsDir = path.join(process.cwd(), 'artifacts', 'service-maps');
+  fs.mkdirSync(serviceMapsDir, { recursive: true });
+  writeJson(path.join(serviceMapsDir, `${buildId}.json`), serviceMap);
+  
+  writeJson(path.join(DASHBOARD_DIR, 'report.json'), buildDashboardReport(canaryStatus, risk, gate, history, serviceMap));
+  
   fs.writeFileSync(CANARY_STATUS_ENV, `CANARY_PASSED=${String(canaryPassed).toLowerCase()}\n`);
 
   console.log(gate.decision);
