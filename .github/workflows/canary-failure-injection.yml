@@ -23,7 +23,7 @@ jobs:
       - name: Run E2E canaries (functional fail)
         env:
           CANARY_FAILURE_MODE: functional
-        run: bash e2e/run-canaries.sh
+        run: node e2e/run-canaries.cjs
       - name: Export CANARY_PASSED
         run: cat canary-status.env >> $GITHUB_ENV
       - name: Print canary result
@@ -50,7 +50,7 @@ jobs:
       - name: Run E2E canaries (performance_p95 fail)
         env:
           CANARY_FAILURE_MODE: performance_p95
-        run: bash e2e/run-canaries.sh
+        run: node e2e/run-canaries.cjs
       - name: Export CANARY_PASSED
         run: cat canary-status.env >> $GITHUB_ENV
       - name: Print canary result
@@ -77,7 +77,7 @@ jobs:
       - name: Run E2E canaries (performance_hardcap fail)
         env:
           CANARY_FAILURE_MODE: performance_hardcap
-        run: bash e2e/run-canaries.sh
+        run: node e2e/run-canaries.cjs
       - name: Export CANARY_PASSED
         run: cat canary-status.env >> $GITHUB_ENV
       - name: Print canary result

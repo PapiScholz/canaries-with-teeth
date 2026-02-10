@@ -53,7 +53,8 @@ function ensureNpmScripts() {
     "canaries:ci": "npx canaries ci",
     "canaries:risk": "npx canaries risk",
     "canaries:gate": "npx canaries gate",
-    "canaries:dashboard": "npx canaries dashboard"
+    "canaries:dashboard": "npx canaries dashboard",
+    "test:canary": "node ./node_modules/canaries-with-teeth/e2e/run-canaries.cjs"
   };
   let changed = false;
   for (const k in scripts) {

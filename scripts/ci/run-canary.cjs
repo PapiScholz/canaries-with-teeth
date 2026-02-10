@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Runs the Node-based canary runner for cross-platform support.
+
 const { spawnSync } = require('child_process');
 
 const result = spawnSync('node', ['e2e/run-canaries.cjs'], {

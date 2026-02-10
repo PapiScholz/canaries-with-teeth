@@ -26,7 +26,7 @@ jobs:
         run: npm ci
 
       - name: Run Canary
-        run: bash scripts/ci/run-canary.sh || true
+        run: node scripts/ci/run-canary.cjs || true
 
       - name: Fetch Risk Decision
         run: node scripts/ci/fetch-risk-decision.mjs
@@ -62,7 +62,7 @@ jobs:
         run: |
           if [ -f package.json ]; then npm ci; fi
       - name: Run E2E canaries
-        run: bash e2e/run-canaries.sh
+        run: node e2e/run-canaries.cjs
       - name: Export CANARY_PASSED
         run: |
           cat canary-status.env >> $GITHUB_ENV

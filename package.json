@@ -10,7 +10,8 @@
     "canaries:ci": "npx canaries ci",
     "canaries:risk": "npx canaries risk",
     "canaries:gate": "npx canaries gate",
-    "canaries:dashboard": "npx canaries dashboard"
+    "canaries:dashboard": "npx canaries dashboard",
+    "test:canary": "node e2e/run-canaries.cjs"
   },
   "type": "module",
   "dependencies": {

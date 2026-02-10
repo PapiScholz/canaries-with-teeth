@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: npm install -g playwright && npm install
       - name: Run E2E canaries
-        run: bash e2e/run-canaries.sh
+        run: node e2e/run-canaries.cjs
       - name: Export CANARY_PASSED
         run: |
           cat canary-status.env >> $GITHUB_ENV
