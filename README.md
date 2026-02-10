@@ -103,19 +103,36 @@ Cuando hacés commit y push:
 
 ### 3. Dashboard
 
+**Cómo generarlo:**
+
+Después de que el sistema ejecute las pruebas, generás el dashboard con:
+
+```sh
+npx canaries dashboard
+```
+
+Esto crea una carpeta `dashboard/` en tu proyecto con archivos HTML.
+
+**Cómo accederlo:**
+
+**Opción 1: Local (en tu computadora)**
+1. Abrí el archivo `dashboard/index.html` en tu navegador
+2. Podés hacer doble clic en el archivo o abrirlo desde tu navegador (Archivo → Abrir)
+3. No necesita conexión a internet ni servidor
+
+**Opción 2: Online (en producción)**
+1. Subí la carpeta `dashboard/` a cualquier servidor web o hosting
+2. También funciona en GitHub Pages, Netlify, Vercel, o cualquier servidor estático
+3. Accedés desde cualquier navegador con la URL donde lo subiste
+4. Compartís el link con tu equipo
+
+El dashboard son archivos HTML puros, sin backend. Funcionan en cualquier lado.
+
 **Qué muestra:**
 - Lista de todas las rutas/páginas de tu aplicación
 - Qué cambió desde la versión anterior
 - Errores encontrados (si hay)
 - Estado de cada verificación (pasó / falló)
-
-**Dónde se genera:**
-- En la carpeta `dashboard/` de tu proyecto
-- Como archivos HTML estáticos
-
-**Cómo se accede:**
-- Abrís el archivo `dashboard/index.html` en tu navegador
-- No necesita servidor, funciona directo desde tu computadora
 
 **Para qué sirve:**
 - Ver de un vistazo si tu aplicación está bien
