@@ -1,302 +1,210 @@
+# Canaries with Teeth
 
+**Every deploy becomes a go/no-go decision. Zero config. Zero vendor lock-in. Zero test-writing.**
 
-# Guía de uso: Canaries with Teeth
+```
+$ npx canaries init
+  Detected: Next.js app with 12 routes
+  Generated: e2e/canary.e2e.spec.js
+  Baseline: captured
 
-## ¿Qué es esto?
+$ git push
+  Running canaries...
+  /dashboard ............ OK (240ms, p95: 300ms)
+  /api/users ............ OK (45ms, p95: 80ms)
+  /checkout ............. FAIL (502, was 200)
 
-Canaries with Teeth es un sistema que verifica si tu aplicación sigue funcionando correctamente antes de cada despliegue. Lo agregás a tu proyecto y automáticamente empieza a revisar tu código cada vez que hacés un cambio.
-
-## ¿Qué problema resuelve?
-
-Cuando hacés cambios en tu código, a veces rompés cosas sin darte cuenta. Este sistema te avisa **antes** de que esos cambios lleguen a producción, evitando que tus usuarios vean errores.
-
-## ¿En qué proyectos se puede usar?
-
-Funciona en cualquier proyecto que pueda ejecutarse o probarse:
-
-- **Websites y aplicaciones web** (React, Vue, Angular, HTML estático)
-- **Frontends** de cualquier tipo
-- **APIs y backends** (Node.js, Express, REST, GraphQL)
-- **Aplicaciones móviles** con versión web
-- **Proyectos chicos** (una página) o **grandes** (múltiples servicios)
-- **CI/CD** en GitHub Actions, GitLab CI, Jenkins, etc.
-
-Si tu proyecto puede abrirse en un navegador o responder a peticiones, este sistema puede verificarlo.
-
-## ¿Qué necesita mi proyecto?
-
-Requisitos mínimos:
-
-- Que exista una aplicación que se pueda ejecutar (aunque sea en local)
-- Que tenga al menos una página o endpoint que funcione
-- Node.js instalado (versión 14 o superior)
-- Git para versionar cambios
-
-**No necesitás:**
-- Configuración especial
-- Credenciales de servicios externos
-- Conocimientos avanzados
-- Cambiar tu código existente
-
-## ¿Qué hace exactamente?
-
-Cuando lo activás, el sistema:
-
-### Observa:
-- Qué páginas o rutas existen en tu aplicación
-- Qué funciones nuevas agregaste o eliminaste
-- Errores que aparecen al navegar tu aplicación
-- Rutas que dejaron de funcionar
-
-### Registra:
-- Un mapa de tu aplicación (qué partes tiene)
-- Cambios entre la versión anterior y la actual
-- Resultados de pruebas automáticas
-- Errores encontrados
-
-### Genera:
-- Un reporte visual (dashboard) que podés abrir en tu navegador
-- Una decisión clara: "permitir el despliegue" o "bloquearlo"
-- Archivos con los resultados de cada verificación
-
-## ¿Qué NO hace?
-
-- **No modifica tu código** ni tus archivos existentes
-- **No necesita acceso** a bases de datos ni servicios externos
-- **No requiere configuración** para funcionar
-- **No sube información** a ningún servidor externo
-- **No ralentiza** tu flujo de trabajo normal
-- **No te obliga** a entender su funcionamiento interno
-
-## Flujo de uso
-
-### 1. Integración inicial
-
-Cuando agregás Canaries with Teeth a tu proyecto:
-
-- Se instala como cualquier otra herramienta
-- Crea una prueba básica que navega tu aplicación
-- Genera un archivo de configuración mínimo
-- Queda listo para usarse
-
-**Qué partes toca:**
-- Carpeta `canaries/` (nueva)
-- Carpeta `e2e/` (nueva, con las pruebas)
-- Tu archivo `package.json` (agrega dependencias)
-
-**Qué cambia en tu proyecto:**
-- Nada de tu código existente cambia
-- Se agregan archivos nuevos en carpetas propias
-
-**Resultado:**
-- Tu proyecto sigue funcionando exactamente igual
-- Ahora tenés un sistema de verificación listo para activarse
-
-### 2. Cada vez que hacés un cambio
-
-Cuando hacés commit y push:
-
-- El sistema ejecuta automáticamente la prueba
-- Revisa si tu aplicación sigue funcionando
-- Compara con la versión anterior
-- Te da una respuesta clara: "OK" o "PROBLEMA"
-
-### 3. Dashboard
-
-**Cómo generarlo:**
-
-Después de que el sistema ejecute las pruebas, generás el dashboard con:
-
-```sh
-npx canaries dashboard
+  RELEASE BLOCKED
+  Risk: 87/100
+  Reason: /checkout returns 502 (was 200 in previous run)
 ```
 
-Esto crea una carpeta `dashboard/` en tu proyecto con archivos HTML.
-
-**Cómo accederlo:**
-
-**Opción 1: Local (en tu computadora)**
-1. Abrí el archivo `dashboard/index.html` en tu navegador
-2. Podés hacer doble clic en el archivo o abrirlo desde tu navegador (Archivo → Abrir)
-3. No necesita conexión a internet ni servidor
-
-**Opción 2: Online (en producción)**
-1. Subí la carpeta `dashboard/` a cualquier servidor web o hosting
-2. También funciona en GitHub Pages, Netlify, Vercel, o cualquier servidor estático
-3. Accedés desde cualquier navegador con la URL donde lo subiste
-4. Compartís el link con tu equipo
-
-El dashboard son archivos HTML puros, sin backend. Funcionan en cualquier lado.
-
-**Qué muestra:**
-- Lista de todas las rutas/páginas de tu aplicación
-- Qué cambió desde la versión anterior
-- Errores encontrados (si hay)
-- Estado de cada verificación (pasó / falló)
-
-**Para qué sirve:**
-- Ver de un vistazo si tu aplicación está bien
-- Identificar qué cambió y dónde
-- Revisar errores antes de desplegar
-
-**Cómo leerlo:**
-- Verde = todo bien
-- Rojo = hay un problema
-- Lista de cambios = qué agregaste o eliminaste
-
-### Seguridad del dashboard (importante)
-
-**El dashboard NO está pensado para ser público.**
-
-Aunque sean archivos HTML que podés abrir en cualquier navegador, **contienen información sensible** sobre tu aplicación:
-
-- Todas las rutas y páginas que existen
-- Qué funcionalidades agregaste o eliminaste
-- Errores internos y dónde ocurren
-- Estructura de navegación completa
-- Flujos críticos de la aplicación
-
-**Publicar esto sin protección expone información que un atacante puede usar para encontrar vulnerabilidades.**
-
-**En producción, el dashboard debe ser:**
-
-1. **Detrás de autenticación**: Solo accesible con usuario y contraseña
-2. **En red privada**: Accesible solo desde VPN o red interna de la empresa
-3. **Artefacto de CI**: Descargable solo desde tu sistema de integración continua
-4. **NO público**: Nunca accesible desde internet sin protección
-
-**Uso seguro:**
-
-✅ Abrirlo localmente en tu computadora durante desarrollo  
-✅ Compartirlo internamente con tu equipo (con acceso controlado)  
-✅ Usarlo como artefacto temporal en CI/CD  
-
-❌ Subirlo a GitHub Pages público  
-❌ Publicarlo en Netlify/Vercel sin autenticación  
-❌ Dejarlo accesible desde cualquier URL pública  
-
-**El hecho de que sea HTML estático no lo hace seguro para publicar sin control de acceso.**
-
-## ¿Qué cosas NO hay que tocar?
-
-Para que funcione correctamente, **no modifiques:**
-
-- La carpeta `canaries/` (contiene el sistema interno)
-- Los archivos en `e2e/` generados automáticamente
-- El archivo `playwright.config.js` o `playwright.config.cjs`
-
-**Sí podés:**
-- Agregar tus propias pruebas en `e2e/`
-- Modificar la prueba básica para que navegue rutas específicas de tu app
-- Revisar y abrir los archivos del dashboard cuando quieras
-
-## ¿Cómo sé si está bien integrado?
-
-Checklist simple:
-
-✅ Después de ejecutar `npx canaries init`, ves una carpeta `canaries/` en tu proyecto  
-✅ Existe una carpeta `e2e/` con al menos un archivo de prueba  
-✅ Al hacer `git push`, se ejecuta automáticamente una verificación  
-✅ Se genera un archivo `report.json` con resultados  
-✅ Podés abrir `dashboard/index.html` y ves información sobre tu aplicación  
-✅ No aparecen errores que interrumpan tu flujo normal de trabajo  
-
-**Si ves todo esto, funciona correctamente.**
-
-## Estado actual del sistema
-
-En este momento, Canaries with Teeth está configurado para:
-
-- **Observar y registrar** todo lo que pasa en tu aplicación
-- **Generar reportes** con cada cambio
-- **NO bloquear** despliegues automáticamente
-
-Los bloqueos automáticos están apagados. El sistema está listo para activarse cuando lo decidas, pero por ahora solo observa y reporta.
-
-Esto significa que:
-- Podés ver qué detecta sin riesgo
-- Tus despliegues siguen su flujo normal
-- Cuando te sientas cómodo, podés activar los bloqueos automáticos
+No config. No test writing. No dashboard setup. Push code, get a go/no-go decision.
 
 ---
 
-# 30-minute setup
+## Why this exists
 
-## 1. Install
+| Tool | Zero-Config | Release Gate | No Vendor Lock | No Tests Required |
+|------|:-----------:|:------------:|:--------------:|:-----------------:|
+| AWS Synthetics | no | no | no (AWS-only) | no |
+| Checkly | no | partial | no (SaaS) | no |
+| Datadog Synthetic | no | no | no (SaaS) | no |
+| Flagger/Argo | no | yes | partial (K8s) | no |
+| **Canaries with Teeth** | **yes** | **yes** | **yes** | **yes** |
+
+**Nobody combines all four.** That's the gap.
+
+---
+
+## Setup (90 seconds)
+
+### 1. Install
 
 ```sh
 npm install --save-dev canaries-with-teeth
 ```
 
-## 2. Init
+### 2. Init
 
 ```sh
 npx canaries init
 ```
 
-## 3. Push
+This detects your framework (Next.js, Express, static HTML, etc.), generates Playwright canaries automatically, establishes baselines, and creates a CI workflow — all without you writing a single test.
+
+### 3. Push
 
 ```sh
-git add .
-git commit -m "try canaries"
-git push
+git add . && git commit -m "add canaries" && git push
 ```
+
+Every push is now gated. If a canary fails or risk is too high, the release is **blocked**.
 
 ---
 
-## What happens next?
+## What it does
 
-- **Every push is gated.**
-- **No config required.**
-- **No formulas or thresholds exposed.**
-- **No thinking needed.**
+### Detects
+- Framework type (frontend, backend, fullstack, static)
+- All routes and endpoints in your application
+- Structural changes between versions
 
----
+### Gates
+- **Canary failures** → release blocked
+- **Risk score > threshold** → release blocked
+- **Route disappeared** → release blocked
+- **New unprotected endpoint** → release flagged
 
-## Example: BLOCKED Release
-
-If a canary fails or risk is too high, your release is blocked.
-
-**Example output:**
-
-```
-RELEASE BLOCKED
-
-Reason: Canary failed (login flow regression)
-Risk Decision: BLOCK
-Artifacts:
-  - e2e/canary.e2e.spec.js
-  - test-results/
-  - report.json
-```
+### Generates
+- E2E canaries (Playwright) — automatically, no test-writing
+- Static HTML dashboard — open `index.html`, no server needed
+- Service maps — structural diff of your application
+- Risk reports — deterministic, auditable, SHA256-hashed
 
 ---
 
-
-## Static Dashboard
-Generate a static dashboard for every run: (Pure HTML. No backend. Open locally or serve anywhere.)
+## Dashboard
 
 ```sh
 npx canaries dashboard
 ```
 
-![Dashboard Screenshot](docs/assets/dashboard-screenshot.png)
+Pure HTML. No backend. Open locally or serve anywhere.
+
+- Green = all clear
+- Red = problem detected
+- Shows exactly what changed and where
 
 ---
 
-## Defaults: MODE 0
+## Progressive disclosure
 
-- Zero configuration
-- No contracts or formulas visible
-- No tuning
-- Works out of the box
-- Deterministic decisions only
+| Level | Who | What They See | Config |
+|-------|-----|---------------|--------|
+| **0** | Everyone | `npx canaries init` → auto-canaries → go/no-go | None |
+| **1** | Devs | Browser telemetry SDK → richer risk scoring | 1 script tag |
+| **2** | Platform teams | Service map gates, custom thresholds, contracts | Config file |
+| **3** | Enterprise | Custom contracts, audit trails, multi-service | Full API |
+
+Level 0 works out of the box. Everything else is optional.
 
 ---
 
-## Architecture & Playbook
+## What this is NOT
 
-For architecture, contracts, and system design:
-- docs/architecture/
-- docs/contracts/
-- playbook/
+- **Not an APM** — doesn't replace Datadog/New Relic
+- **Not a testing framework** — doesn't replace Jest/Vitest
+- **Not a deployment tool** — doesn't replace Argo/Flagger
+- **Not a SaaS** — no accounts, no cloud, no vendor
+- **Not passive** — if it says block, the release is blocked
+
+---
+
+## Architecture & docs
+
+- [Vision](docs/00-vision.md) — why this exists
+- [North Star](docs/NORTH-STAR.md) — mission, personas, differentiators
+- [Architecture](docs/architecture/) — system design
+- [Contracts](docs/contracts/) — frozen decision rules
+
+---
+
+> "If your deploy pipeline doesn't have teeth, it's just a suggestion."
+
+---
+
+# Guia en Espanol
+
+## Que es Canaries with Teeth?
+
+Un sistema que verifica si tu aplicacion funciona correctamente **antes** de cada despliegue. Lo agregas a tu proyecto y automaticamente revisa tu codigo cada vez que haces un cambio.
+
+**No necesitas:**
+- Configuracion especial
+- Escribir tests
+- Credenciales externas
+- Conocimientos avanzados
+- Cambiar tu codigo existente
+
+## Como se usa?
+
+```sh
+# 1. Instalar
+npm install --save-dev canaries-with-teeth
+
+# 2. Inicializar (detecta tu framework automaticamente)
+npx canaries init
+
+# 3. Empujar cambios (el sistema verifica automaticamente)
+git add . && git commit -m "agregar canaries" && git push
+```
+
+**Eso es todo.** Cada push ahora pasa por una verificacion automatica.
+
+## Que pasa despues?
+
+Cuando haces push, el sistema:
+
+1. **Ejecuta canaries** — navega tu aplicacion automaticamente
+2. **Compara** — con la version anterior
+3. **Decide** — "permitir el despliegue" o "bloquearlo"
+4. **Genera un dashboard** — HTML puro, abres `index.html` y ves verde (OK) o rojo (problema)
+
+## Dashboard
+
+```sh
+npx canaries dashboard
+```
+
+Crea una carpeta `dashboard/` con archivos HTML. Abris `index.html` en tu navegador.
+
+- **Verde** = todo bien
+- **Rojo** = hay un problema
+- **Lista de cambios** = que agregaste o eliminaste
+
+### Seguridad del dashboard
+
+El dashboard contiene informacion sobre la estructura de tu aplicacion (rutas, errores, flujos). **No lo publiques sin proteccion.** Usalo:
+
+- Localmente en tu computadora
+- Compartido internamente con acceso controlado
+- Como artefacto temporal en CI/CD
+- **Nunca** en una URL publica sin autenticacion
+
+## Donde funciona?
+
+- Websites y aplicaciones web (React, Vue, Angular, HTML)
+- APIs y backends (Node.js, Express)
+- GitHub Actions, GitLab CI, Jenkins
+- Proyectos chicos (una pagina) o grandes (microservicios)
+
+Si tu proyecto puede abrirse en un navegador o responder a peticiones, este sistema puede verificarlo.
+
+## Que NO hace?
+
+- No modifica tu codigo existente
+- No necesita acceso a bases de datos
+- No sube informacion a ningun servidor externo
+- No ralentiza tu flujo de trabajo
+- No te obliga a entender su funcionamiento interno
